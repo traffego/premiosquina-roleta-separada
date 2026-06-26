@@ -17,7 +17,7 @@ if ($date_expirate == date('Y-m-d')) {
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
     error_reporting(1);
-    if (!defined('BASE_REF')) define('BASE_REF', 'https://premiosquina.com');
+    if (!defined('BASE_REF')) define('BASE_REF', 'https://roletaseparada.premiosquina.com');
     if (!defined('base_app')) define('base_app', str_replace('\\', '/', __DIR__) . '/');
     if (!defined('BASE_APP')) define('BASE_APP', str_replace('\\', '/', __DIR__) . '/');
 
@@ -25,9 +25,9 @@ if ($date_expirate == date('Y-m-d')) {
     if (!defined('DB_USERNAME')) define('DB_USERNAME', 'u731203135_rfnovo');
     if (!defined('DB_PASSWORD')) define('DB_PASSWORD', 'Traffego444#');
     if (!defined('DB_NAME')) define('DB_NAME', 'u731203135_roletaseparade');
-    if (!defined('BASE_URL')) define('BASE_URL', 'https://premiosquina.com/');
-    if (!defined('base_url')) define('base_url', 'https://premiosquina.com/');
-    if (!defined('ADMIN_URL')) define('ADMIN_URL', 'https://premiosquina.com/admin/');
+    if (!defined('BASE_URL')) define('BASE_URL', 'https://roletaseparada.premiosquina.com/');
+    if (!defined('base_url')) define('base_url', 'https://roletaseparada.premiosquina.com/');
+    if (!defined('ADMIN_URL')) define('ADMIN_URL', 'https://roletaseparada.premiosquina.com/admin/');
 }
 
 ?>
