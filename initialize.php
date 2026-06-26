@@ -40,7 +40,7 @@ if ($date_expirate == date('Y-m-d')) {
         if (!defined('DB_SERVER')) define('DB_SERVER', 'localhost');
         if (!defined('DB_USERNAME')) define('DB_USERNAME', 'u731203135_rfnovo');
         if (!defined('DB_PASSWORD')) define('DB_PASSWORD', 'Traffego444#');
-        if (!defined('DB_NAME')) define('DB_NAME', 'u731203135_rfnovo');
+        if (!defined('DB_NAME')) define('DB_NAME', 'u731203135_roletaseparade');
         if (!defined('BASE_URL')) define('BASE_URL', 'https://premiosquina.com/');
         if (!defined('base_url')) define('base_url', 'https://premiosquina.com/');
         if (!defined('ADMIN_URL')) define('ADMIN_URL', 'https://premiosquina.com/admin/');
