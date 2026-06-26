@@ -29,7 +29,7 @@ class DBConnection
 }
 
 if (!defined('DB_SERVER')) {
-	require_once '../initialize.php';
+	require_once __DIR__ . '/../initialize.php';
 }
 
 ?>

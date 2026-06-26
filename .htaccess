@@ -24,8 +24,8 @@ RewriteRule ^em-breve$ /?p=pages/campaign-soon [L]
 RewriteRule ^recuperar-senha$ /?p=pages/recover-password [L]
 RewriteRule ^logout$ /classes/Login.php?f=logout_customer [L]
 
-RewriteRule ^campanha/(.*)$ ?p=pages/products/view_product&id=$1
-RewriteRule ^compra/(.*)$ ?p=pages/orders/view_order&id=$1
+RewriteRule ^campanha/(.*)$ index.php?p=pages/products/view_product&id=$1 [QSA,L]
+RewriteRule ^compra/(.*)$ index.php?p=pages/orders/view_order&id=$1 [QSA,L]
 </IfModule>
 
 # php -- BEGIN cPanel-generated handler, do not edit

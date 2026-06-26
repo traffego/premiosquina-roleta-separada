@@ -1,5 +1,5 @@
 <?php
-require_once "../settings.php";
+require_once __DIR__ . "/../settings.php";
 
 class Main extends DBConnection
 {
@@ -157,6 +157,140 @@ class Main extends DBConnection
         $roleta = isset($_POST["roleta"]) ? 1 : 0;
         $box = isset($_POST["box"]) ? 1 : 0;
         $roleta_cotas_por_giro = isset($_POST["roleta_cotas_por_giro"]) ? max(0, (int)$_POST["roleta_cotas_por_giro"]) : 0;
+        $roleta_premios = $this->conn->real_escape_string($_POST["roleta_premios"]);
+
+        // Validação de Cotas Premiadas e Cotas de Roleta
+        $cotas_premiadas_array = [];
+        if (!empty($_POST["cotas_premiadas"])) {
+            $cotas_premiadas_array = array_filter(array_map('trim', explode(',', $_POST["cotas_premiadas"])));
+        }
+
+        $roleta_cotas_array = [];
+        if (!empty($_POST["roleta_premios"])) {
+            $roleta_premios_raw = $_POST["roleta_premios"];
+            $roleta_arr = json_decode(html_entity_decode($roleta_premios_raw), true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $roleta_arr = json_decode($roleta_premios_raw, true);
+            }
+            if (is_array($roleta_arr)) {
+                foreach ($roleta_arr as $item) {
+                    if (isset($item['cota']) && trim($item['cota']) !== '') {
+                        $roleta_cotas_array[] = trim($item['cota']);
+                    }
+                }
+            }
+        }
+
+        // Validar limites numéricos e aplicar padding de zeros
+        $qty_numbers_val = intval($qty_numbers);
+        if ($qty_numbers_val > 0) {
+            $tamanho_numero = strlen((string)($qty_numbers_val - 1));
+
+            // Validar e formatar cotas premiadas comuns
+            foreach ($cotas_premiadas_array as $key => $cota) {
+                if (!ctype_digit($cota) || intval($cota) >= $qty_numbers_val || intval($cota) < 0) {
+                    $resp["status"] = "failed";
+                    $resp["msg"] = "Erro: A cota premiada '{$cota}' é inválida ou excede o limite máximo permitido (" . ($qty_numbers_val - 1) . ").";
+                    return json_encode($resp);
+                }
+                $cotas_premiadas_array[$key] = str_pad($cota, $tamanho_numero, '0', STR_PAD_LEFT);
+            }
+            $cotas_premiadas = implode(',', $cotas_premiadas_array);
+
+            // Validar cotas de roleta
+            foreach ($roleta_cotas_array as $cota) {
+                if (!ctype_digit($cota) || intval($cota) >= $qty_numbers_val || intval($cota) < 0) {
+                    $resp["status"] = "failed";
+                    $resp["msg"] = "Erro: A cota de roleta '{$cota}' é inválida ou excede o limite máximo permitido (" . ($qty_numbers_val - 1) . ").";
+                    return json_encode($resp);
+                }
+            }
+        }
+
+        // 1. Verificar duplicados entre si (cota não pode estar na roleta e nas cotas premiadas comuns simultaneamente)
+        $duplicadas_entre_si = array_intersect($cotas_premiadas_array, $roleta_cotas_array);
+        if (!empty($duplicadas_entre_si)) {
+            $resp["status"] = "failed";
+            $resp["msg"] = "Erro: As seguintes cotas estão duplicadas (premiadas e roleta): " . implode(', ', $duplicadas_entre_si);
+            return json_encode($resp);
+        }
+
+        // 2. Verificar se alguma nova cota inserida já foi vendida ou reservada (status <> 3 na order_list)
+        if (!empty($id)) {
+            $todas_cotas_enviadas = array_unique(array_merge($cotas_premiadas_array, $roleta_cotas_array));
+            if (!empty($todas_cotas_enviadas)) {
+                // Obter cotas já salvas anteriormente no banco para este produto
+                $cotas_permitidas = [];
+                $prod_old = $this->conn->query("SELECT cotas_premiadas, roleta_premios FROM product_list WHERE id = '$id'")->fetch_assoc();
+                if ($prod_old) {
+                    if (!empty($prod_old['cotas_premiadas'])) {
+                        $cotas_premiadas_antigas = array_filter(array_map('trim', explode(',', $prod_old['cotas_premiadas'])));
+                        $cotas_permitidas = array_merge($cotas_permitidas, $cotas_premiadas_antigas);
+                    }
+                    if (!empty($prod_old['roleta_premios'])) {
+                        $roleta_arr_old = json_decode(html_entity_decode($prod_old['roleta_premios']), true);
+                        if (json_last_error() !== JSON_ERROR_NONE) {
+                            $roleta_arr_old = json_decode($prod_old['roleta_premios'], true);
+                        }
+                        if (is_array($roleta_arr_old)) {
+                            foreach ($roleta_arr_old as $item) {
+                                if (isset($item['cota']) && trim($item['cota']) !== '') {
+                                    $cotas_permitidas[] = trim($item['cota']);
+                                }
+                            }
+                        }
+                    }
+                }
+                $cotas_permitidas = array_unique($cotas_permitidas);
+
+                // Filtrar apenas as cotas novas (enviadas no post que não estavam salvas antes)
+                // Normalizar para inteiro para ignorar diferença de zeros à esquerda
+                $todas_cotas_novas = array_filter($todas_cotas_enviadas, function($c) use ($cotas_permitidas) {
+                    $c_int = (int)$c;
+                    foreach ($cotas_permitidas as $p) {
+                        if ((int)$p === $c_int) return false;
+                    }
+                    return true;
+                });
+
+                if (!empty($todas_cotas_novas)) {
+                    $query_vendidos = "SELECT order_numbers FROM order_list WHERE product_id = '$id' AND status <> 3";
+                    $result_vendidos = $this->conn->query($query_vendidos);
+                    
+                    // Guardar cotas vendidas normalizadas (como int string)
+                    $numeros_vendidos = [];
+                    if ($result_vendidos) {
+                        while ($row = $result_vendidos->fetch_assoc()) {
+                            if (!empty($row['order_numbers'])) {
+                                $numbers = explode(',', $row['order_numbers']);
+                                foreach ($numbers as $num) {
+                                    $num = trim($num);
+                                    if ($num !== '') {
+                                        // Normalizar: armazenar como valor inteiro
+                                        $numeros_vendidos[(string)(int)$num] = $num; // chave=int, valor=original
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    $vendidas_detectadas = [];
+                    foreach ($todas_cotas_novas as $cota) {
+                        // Comparar por valor inteiro ignorando zeros à esquerda
+                        $cota_int = (string)(int)$cota;
+                        if (isset($numeros_vendidos[$cota_int])) {
+                            $vendidas_detectadas[] = $cota;
+                        }
+                    }
+
+                    if (!empty($vendidas_detectadas)) {
+                        $resp["status"] = "failed";
+                        $resp["msg"] = "Erro: As seguintes cotas já foram vendidas ou reservadas e não podem ser cadastradas: " . implode(', ', $vendidas_detectadas);
+                        return json_encode($resp);
+                    }
+                }
+            }
+        }
 
         // First Purchase Promo
         $first_purchase_enabled = isset($_POST["first_purchase_enabled"]) ? 1 : 0;
@@ -220,7 +354,7 @@ class Main extends DBConnection
 
         if (empty($id)) {
             $sql =
-                'INSERT INTO `product_list` (`name`,`description`,`price`,`status`,`type_of_draw`,`qty_numbers`,`limit_orders`,`min_purchase`,`max_purchase`,`slug`,`pending_numbers`,`paid_numbers`,`ranking_qty`,`enable_ranking`,`enable_progress_bar`,`draw_number`,`status_display`, `subtitle`, `cotas_premiadas`, `cotas_premiadas_descricao`, `cotas_rua_inicio`, `cotas_rua_fim`, `date_of_draw`, `limit_order_remove`,`discount_qty`,`discount_amount`,`enable_discount`,`enable_cumulative_discount`,`enable_sale`,`sale_qty`,`sale_price`,`ranking_message`,`enable_ranking_show`,`ranking_type`,`draw_winner`,`private_draw`,`featured_draw`,`qty_select_1`,`qty_select_2`,`qty_select_3`,`qty_select_4`,`qty_select_5`,`qty_select_6`,`status_auto_cota`,`valor_base_auto`, `tipo_auto_cota`, `quantidade_auto_cota`, `quantidade_auto_cota_diario`, `cotas_premiadas_premios`, `roleta`, `box`, `first_purchase_enabled`, `first_purchase_free_qty`, `roleta_cotas_por_giro`) VALUES (\'' .
+                'INSERT INTO `product_list` (`name`,`description`,`price`,`status`,`type_of_draw`,`qty_numbers`,`limit_orders`,`min_purchase`,`max_purchase`,`slug`,`pending_numbers`,`paid_numbers`,`ranking_qty`,`enable_ranking`,`enable_progress_bar`,`draw_number`,`status_display`, `subtitle`, `cotas_premiadas`, `cotas_premiadas_descricao`, `cotas_rua_inicio`, `cotas_rua_fim`, `date_of_draw`, `limit_order_remove`,`discount_qty`,`discount_amount`,`enable_discount`,`enable_cumulative_discount`,`enable_sale`,`sale_qty`,`sale_price`,`ranking_message`,`enable_ranking_show`,`ranking_type`,`draw_winner`,`private_draw`,`featured_draw`,`qty_select_1`,`qty_select_2`,`qty_select_3`,`qty_select_4`,`qty_select_5`,`qty_select_6`,`status_auto_cota`,`valor_base_auto`, `tipo_auto_cota`, `quantidade_auto_cota`, `quantidade_auto_cota_diario`, `cotas_premiadas_premios`, `roleta`, `box`, `first_purchase_enabled`, `first_purchase_free_qty`, `roleta_cotas_por_giro`, `roleta_premios`) VALUES (\'' .
                 $name .
                 '\',\'' .
                 $description .
@@ -328,6 +462,8 @@ class Main extends DBConnection
                 $first_purchase_free_qty .
                 '\', \'' .
                 $roleta_cotas_por_giro .
+                '\', \'' .
+                $roleta_premios .
                 '\') ';
         } else {
             $sql =
@@ -433,6 +569,8 @@ class Main extends DBConnection
                 $first_purchase_free_qty .
                 '\',`roleta_cotas_por_giro` = \'' .
                 $roleta_cotas_por_giro .
+                '\',`roleta_premios` = \'' .
+                $roleta_premios .
                 '\' WHERE `id` = ' .
                 $id .
 
@@ -5844,9 +5982,46 @@ class Main extends DBConnection
         $resp['pad'] = $pad;
         return json_encode($resp);
     }
+
+    public function check_cota_sold() {
+        $resp = ['status' => 'success', 'sold' => false];
+        $product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+        $cota = isset($_POST['cota']) ? trim($_POST['cota']) : '';
+
+        if ($product_id <= 0 || empty($cota)) {
+            $resp['status'] = 'failed';
+            return json_encode($resp);
+        }
+
+        // Normalizar: converter para inteiro e voltar a string sem zeros à esquerda
+        // Assim "149360" e "0149360" são tratados como o mesmo número
+        $cota_int = (string)(int)$cota; // remove zeros à esquerda
+        $cota_esc = $this->conn->real_escape_string($cota_int);
+
+        // Buscar todos os order_numbers do produto que não foram cancelados
+        $query = "SELECT order_numbers FROM order_list WHERE product_id = '$product_id' AND status <> 3";
+        $result = $this->conn->query($query);
+        $sold = false;
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                if (!empty($row['order_numbers'])) {
+                    foreach (explode(',', $row['order_numbers']) as $num) {
+                        $num = trim($num);
+                        if ($num !== '' && (string)(int)$num === $cota_int) {
+                            $sold = true;
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
+        $resp['sold'] = $sold;
+
+        return json_encode($resp);
+    }
 }
 
-require_once "../settings.php";
+require_once __DIR__ . "/../settings.php";
 $Main = new Main();
 $action = !isset($_GET["action"]) ? "none" : strtolower($_GET["action"]);
 $sysset = new System();
@@ -5854,6 +6029,9 @@ $sysset = new System();
 switch ($action) {
     case "save_product_sys":
         echo $Main->save_product();
+        break;
+    case "check_cota_sold":
+        echo $Main->check_cota_sold();
         break;
     case "save_cotas_rua_ranges":
         echo $Main->save_cotas_rua_ranges();

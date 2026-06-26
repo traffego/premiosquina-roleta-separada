@@ -114,7 +114,7 @@ $orderitem = $conn->query("SELECT * FROM `order_list` where order_token = '{$_GE
 
 $orderitem = $orderitem->fetch_assoc();
 
-$product = $conn->query("SELECT cotas_premiadas, type_of_draw, cotas_premiadas_premios, roleta, box FROM `product_list` where id = '{$orderitem['product_id']}'");
+$product = $conn->query("SELECT cotas_premiadas, type_of_draw, cotas_premiadas_premios, roleta, box, roleta_premios FROM `product_list` where id = '{$orderitem['product_id']}'");
 $product = $product->fetch_assoc();
 $type_of_draw = $product['type_of_draw'];
 $cotas_p = $product['cotas_premiadas'];
@@ -129,9 +129,22 @@ foreach ($pairs as $pair) {
 }
 $cotas_array = $deserialized;
 $cotas_premiadas = explode(',', $cotas_p);
-$my_numbers = 0;
 $my_numbers = $orderitem['order_numbers'];
 $my_numbers = explode(',', $my_numbers);
+
+// Verificar quais cotas da roleta foram compradas neste pedido
+$numeros_premiados_roleta = [];
+$roleta_premios_json = $product['roleta_premios'];
+$roleta_premios_arr = json_decode($roleta_premios_json, true) ?? [];
+if (is_array($roleta_premios_arr)) {
+    foreach ($roleta_premios_arr as $item) {
+        $cota_r = trim($item['cota']);
+        $premio_r = trim($item['premio']);
+        if ($cota_r !== '' && in_array($cota_r, $my_numbers)) {
+            $numeros_premiados_roleta[$cota_r] = $premio_r;
+        }
+    }
+}
 
 // Inicialize a página atual com base no parâmetro da URL ou padrão para 1
 $current_page = 1;
@@ -470,6 +483,21 @@ if (isset($_GET['id']) && $_GET['id'] > 0) {
                                 </div>
                             </div>
                         </div>
+                        <div class="achouacota-roleta<?= $i ?> d-none detalhes app-card-winner card mb-2 " style="background: rgb(25, 135, 84); color: rgb(255, 255, 255); opacity: 1;">
+                            <div class="card-body ">
+                                <span style="color:#387f57; font-size:1.5rem; font-weight:900">🥳Você ganhou na Roleta! Parabéns!🥳</span>
+                                <div class="font-xs mb-2 text-dark">
+                                    <div class="pt-1 opacity-75 font-xs text-dark">Sua cota da roleta foi contemplada com o prêmio:</div>
+                                    <div id="roleta-premio-ganho-container<?= $i ?>" style="align-items:center; justify-content:center; gap:8px; margin-block:16px; font-weight:bold; font-size:1.25rem; color:#387f57;"></div>
+                                    <div style="color:#387f57 !important; font-size:0.9rem !important; margin-block:0 !important; opacity: 1 !important; font-weight: 500 !important;" class=" opacity-75 font-xs text-dark">
+                                        Em breve, nossa equipe entrará em contato com você para realizar a entrega do prêmio.
+                                    </div>
+                                    <a href="https://wa.me/<?= $whatsapp ?>" target="_blank" style="z-index: 1001; position: relative;" class="" id="wpp_btn">
+                                        <i style="margin-right:4px" class="bi bi-whatsapp"></i> Falar com o suporte
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                         <div class=" card mb-2 card-girar<?= $i ?>">
                             <div class="card-body">
                                 <div class="roleta-premiada--giros">
@@ -517,12 +545,27 @@ if (isset($_GET['id']) && $_GET['id'] > 0) {
                         $numeros_encontrados = implode(', ', $numeros_premiados);
                         $numeros_encontrados = rtrim($numeros_encontrados, ', ');
                         $roletaOpen = false;
-                        if (isset($cotas_p) && !empty($cotas_p)) {
+                        if (true) {
                             if ($tipo_roleta) {
                                 if ($roleta > 0) {
                                     for ($i = 0; $i < $roleta; $i++) {
 
                             ?>
+                            <div class="achouacota-roleta<?= $i ?> d-none detalhes app-card-winner card mb-2 " style="background: rgb(25, 135, 84); color: rgb(255, 255, 255); opacity: 1;">
+                                <div class="card-body ">
+                                    <span style="color:#387f57; font-size:1.5rem; font-weight:900">🥳Você ganhou na Roleta! Parabéns!🥳</span>
+                                    <div class="font-xs mb-2 text-dark">
+                                        <div class="pt-1 opacity-75 font-xs text-dark">Sua cota da roleta foi contemplada com o prêmio:</div>
+                                        <div id="roleta-premio-ganho-container<?= $i ?>" style="align-items:center; justify-content:center; gap:8px; margin-block:16px; font-weight:bold; font-size:1.25rem; color:#387f57;"></div>
+                                        <div style="color:#387f57 !important; font-size:0.9rem !important; margin-block:0 !important; opacity: 1 !important; font-weight: 500 !important;" class=" opacity-75 font-xs text-dark">
+                                            Em breve, nossa equipe entrará em contato com você para realizar a entrega do prêmio.
+                                        </div>
+                                        <a href="https://wa.me/<?= $whatsapp ?>" target="_blank" style="z-index: 1001; position: relative;" class="" id="wpp_btn">
+                                            <i style="margin-right:4px" class="bi bi-whatsapp"></i> Falar com o suporte
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                             <div class=" card mb-2 card-girar<?= $i ?>">
                             <div class="card-body">
                                 <div class="roleta-premiada--giros">
@@ -866,42 +909,44 @@ if (isset($_GET['id']) && $_GET['id'] > 0) {
 </script>
 
 <?php
-$partes = array_slice(explode(":", $cotas_premiadas_premios), 0, 18);
-// Inicializar um array para os prêmios
+// Montar prêmios da roleta a partir do JSON de roleta_premios
 $prizes = [];
-$totalPrizes = (count($partes) / 2); // Número total de prêmios
 
-// Determinar quantos "Perdeu" serão adicionados, no máximo 3
-$numPerdeu = min(3, ceil($totalPrizes / 2)); // No máximo 3 "Perdeu"
+// Adiciona o primeiro "Perdeu" para garantir a fatia de perda
+$prizes[] = "Perdeu";
 
-// Adiciona o primeiro "Perdeu"
-$prizes[] = "Perdeu"; 
-
-// Agora, adicionamos os prêmios e distribuímos o "Perdeu"
-$perdeuCount = 1; // Já temos 1 "Perdeu"
-$prizeIndex = 0; // Contador de prêmios
-
-for ($i = 1; $i < count($partes); $i += 2) { 
-    // Pega o valor do prêmio
-    $prize = $partes[$i];
-
-    // Adiciona o prêmio ao array $prizes
-    $prizes[] = $prize;
+if (is_array($roleta_premios_arr) && !empty($roleta_premios_arr)) {
+    // Determinar quantos "Perdeu" serão intercalados
+    $totalPrizes = count($roleta_premios_arr);
+    $numPerdeu = min(3, ceil($totalPrizes / 2));
+    $perdeuCount = 1;
+    $prizeIndex = 0;
     
-    // Adiciona "Perdeu" após 3 prêmios
-    if ($perdeuCount < $numPerdeu && (($prizeIndex + 1) % 3 == 0)) {
-        $prizes[] = "Perdeu";
-        $perdeuCount++;
+    foreach ($roleta_premios_arr as $item) {
+        $prizes[] = trim($item['premio']);
+        
+        // Intercala "Perdeu" a cada 3 prêmios
+        if ($perdeuCount < $numPerdeu && (($prizeIndex + 1) % 3 == 0)) {
+            $prizes[] = "Perdeu";
+            $perdeuCount++;
+        }
+        $prizeIndex++;
     }
-
-    $prizeIndex++;
+} else {
+    // Fallback se não houver prêmios de roleta configurados
+    $prizes[] = "Tente Novamente";
 }
 
 
 
 // Exibir o resultado final
+?>
 
+<script>
+    const numerosPremiadosRoleta = <?php echo json_encode($numeros_premiados_roleta); ?>;
+</script>
 
+<?php
 for ($i = 0; $i < $roleta; $i++) {
 
     if ($tipo_roleta) {
@@ -983,7 +1028,7 @@ for ($i = 0; $i < $roleta; $i++) {
 
                     // Calcular o ângulo de rotação necessário para que a roleta pare no índice 0
                     // A roleta deve girar um número de voltas + o ângulo para o índice 0
-                    <?php if (!empty($numeros_premiados)): ?>
+                    <?php if (!empty($numeros_premiados_roleta)): ?>
                         const rotations<?= $i ?> = Math.floor(Math.random() * 5) + 5.1; // 5 voltas completas aleatórias
                     <?php else: ?>
                         const rotations<?= $i ?> = Math.floor(Math.random() * 5) + 4.68; // 5 voltas completas aleatórias
@@ -1001,14 +1046,18 @@ for ($i = 0; $i < $roleta; $i++) {
                     setTimeout(() => {
                         const prizeIndex<?= $i ?> = 0; // O índice 0 é "Perdeu tudo"
                         $('#roleta-premiada--roda<?= $i ?>').addClass('d-none')
-                        <?php if (!empty($numeros_premiados)): ?>
-                            $('.achouacota').removeClass('d-none')
-                            spinGanhou<?= $i ?>.play()
+                        <?php if (!empty($numeros_premiados_roleta)): ?>
+                            const premiosGanhos<?= $i ?> = Object.values(numerosPremiadosRoleta);
+                            if (premiosGanhos<?= $i ?>.length > 0) {
+                                $('#roleta-premio-ganho-container<?= $i ?>').text(premiosGanhos<?= $i ?>.join(', '));
+                            }
+                            $('.achouacota-roleta<?= $i ?>').removeClass('d-none');
+                            spinGanhou<?= $i ?>.play();
                         <?php else: ?>
-                            $('.card-perdeu<?= $i ?>').removeClass('d-none')
-                            spinPerdeu<?= $i ?>.play()
+                            $('.card-perdeu<?= $i ?>').removeClass('d-none');
+                            spinPerdeu<?= $i ?>.play();
                         <?php endif ?>
-                        $('.card-girar<?= $i ?>').addClass('d-none')
+                        $('.card-girar<?= $i ?>').addClass('d-none');
                         var check = {
                             order_token: '<?= $order_token ?>',
                             roleta: '<?= $roleta ?>'
@@ -1050,9 +1099,13 @@ for ($i = 0; $i < $roleta; $i++) {
                     setTimeout(() => {
                         $('.area-box<?= $i ?>').addClass('d-none')
                         $('.card-caixa-abrir<?= $i ?>').addClass('d-none')
-                        <?php if (!empty($numeros_premiados)): ?>
-                            $('.achouacota').removeClass('d-none')
-                            caixaGanhou<?= $i ?>.play()
+                        <?php if (!empty($numeros_premiados_roleta)): ?>
+                            const premiosGanhosBox<?= $i ?> = Object.values(numerosPremiadosRoleta);
+                            if (premiosGanhosBox<?= $i ?>.length > 0) {
+                                $('#roleta-premio-ganho-container<?= $i ?>').text(premiosGanhosBox<?= $i ?>.join(', '));
+                            }
+                            $('.achouacota-roleta<?= $i ?>').removeClass('d-none');
+                            caixaGanhou<?= $i ?>.play();
                         <?php else: ?>
                             caixaPerdeu<?= $i ?>.play();
 

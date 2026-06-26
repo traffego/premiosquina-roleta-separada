@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // v3.0 - Cotas de rua: múltiplos ranges, preview stats, validação de interseção, modal de sequência não salva, pq?
 
 if (isset($_GET['id']) && 0 < $_GET['id']) {
@@ -111,6 +111,9 @@ echo '<style>' .
                     </li>
                     <li class="mr-1">
                         <a href="#tab8" class="dark:text-gray-300 dark:border-gray-600 dark:bg-gray-800 inline-block py-2 px-4 font-semibold border rounded-t text-gray-700">Cotas de rua</a>
+                    </li>
+                    <li class="mr-1">
+                        <a href="#tab9" class="dark:text-gray-300 dark:border-gray-600 dark:bg-gray-800 inline-block py-2 px-4 font-semibold border rounded-t text-gray-700">Roleta</a>
                     </li>
                 </ul>
             </div>
@@ -655,17 +658,6 @@ echo '<style>' .
                         </label>
                     </div>
                     <label class="block mt-4 text-sm">
-                        <span class="text-gray-700 dark:text-gray-400">Habilitar Roleta ?</span>
-                    </label>
-                    <div style="margin-top:4px" class="can-toggle">
-                        <input type="checkbox" name="roleta" id="roleta"
-                            <?php echo isset($roleta) && $roleta == 1 ? 'checked' : '' ?>
-                            value="<?php echo isset($roleta) ? $roleta : '' ?> ">
-                        <label for="roleta">
-                            <div class="can-toggle__switch" data-checked="Sim" data-unchecked="Não"></div>
-                        </label>
-                    </div>
-                    <label class="block mt-4 text-sm">
                         <span class="text-gray-700 dark:text-gray-400">Habilitar Box ?</span>
                     </label>
                     <div style="margin-top:4px" class="can-toggle">
@@ -676,14 +668,6 @@ echo '<style>' .
                             <div class="can-toggle__switch" data-checked="Sim" data-unchecked="Não"></div>
                         </label>
                     </div>
-                    <label class="block mt-4 text-sm">
-                        <span class="text-gray-700 dark:text-gray-400">Cotas por Giro de Roleta / Caixa</span>
-                        <p style="font-size:13px;color:orange;font-style:italic;margin-top:2px;">A cada X cotas compradas, o cliente ganha 1 giro. Deixe 0 para manter 1 giro fixo por pedido.</p>
-                        <input type="number" name="roleta_cotas_por_giro" id="roleta_cotas_por_giro" min="0"
-                            class="block w-full mt-1 text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-                            placeholder="Ex: 50"
-                            value="<?php echo isset($roleta_cotas_por_giro) ? (int)$roleta_cotas_por_giro : 0; ?>">
-                    </label>
                 </div>
 
                 <div id="tab8" class="tabcontent text-gray-700 dark:text-gray-400 hidden">
@@ -1109,6 +1093,115 @@ echo '<style>' .
                         };
                     })();
                     </script>
+                </div>
+
+                <div id="tab9" class="tabcontent text-gray-700 dark:text-gray-400 hidden">
+                    <label class="block mt-4 text-sm">
+                        <span class="text-gray-700 dark:text-gray-400">Habilitar Roleta ?</span>
+                    </label>
+                    <div style="margin-top:4px" class="can-toggle">
+                        <input type="checkbox" name="roleta" id="roleta"
+                            <?php echo isset($roleta) && $roleta == 1 ? 'checked' : '' ?>
+                            value="<?php echo isset($roleta) ? $roleta : '' ?> ">
+                        <label for="roleta">
+                            <div class="can-toggle__switch" data-checked="Sim" data-unchecked="Não"></div>
+                        </label>
+                    </div>
+
+                    <label class="block mt-4 text-sm">
+                        <span class="text-gray-700 dark:text-gray-400">Cotas por Giro de Roleta / Caixa</span>
+                        <p style="font-size:13px;color:orange;font-style:italic;margin-top:2px;">A cada X cotas compradas, o cliente ganha 1 giro. Deixe 0 para manter 1 giro fixo por pedido.</p>
+                        <input type="number" name="roleta_cotas_por_giro" id="roleta_cotas_por_giro" min="0"
+                            class="block w-full mt-1 text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
+                            placeholder="Ex: 50"
+                            value="<?php echo isset($roleta_cotas_por_giro) ? (int)$roleta_cotas_por_giro : 0; ?>">
+                    </label>
+
+                    <div class="block mt-4 text-sm">
+                        <span class="text-gray-700 dark:text-gray-400 font-semibold">Cotas Premiadas da Roleta</span>
+                        <div class="grid gap-4 md:grid-cols-4 xl:grid-cols-4 mt-2 items-end">
+                            <div>
+                                <label class="block text-xs text-gray-600 dark:text-gray-400">Número da Cota</label>
+                                <input type="text" id="roleta-cota-input" class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-input focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300" placeholder="Ex: 456">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 dark:text-gray-400">Tipo de Prêmio</label>
+                                <select id="roleta-tipo-premio-select" class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray">
+                                    <option value="dinheiro">💵 Dinheiro</option>
+                                    <option value="premios" selected>🎁 Prêmio (Caixinha)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 dark:text-gray-400">Prêmio da Roleta</label>
+                                <input type="text" id="roleta-premio-input" class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-input focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300" placeholder="Ex: Caixa de Som">
+                            </div>
+                            <div>
+                                <button type="button" id="btn-add-roleta-cota" class="w-full px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
+                                    Adicionar Cota
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Lista de tags oculta (para compatibilidade com o salvamento existente) -->
+                        <div id="roleta-tags-container" style="display: none;">
+                            <?php
+                            $roleta_premios_arr = [];
+                            if (isset($roleta_premios) && !empty($roleta_premios)) {
+                                $roleta_premios_arr = json_decode($roleta_premios, true);
+                                if (is_array($roleta_premios_arr)) {
+                                    foreach ($roleta_premios_arr as $item) {
+                                        $cota = trim($item['cota']);
+                                        $premio = trim($item['premio']);
+                                        $tipo = isset($item['tipo']) ? trim($item['tipo']) : 'premios';
+                                        if ($cota !== '') {
+                                            echo "<div id='roleta_tag_$cota' data-cota='$cota' data-premio='$premio' data-tipo='$tipo' class='tag roleta-tag' style='background-color:#4f46e5 !important;'>$cota ($premio) <span class='remove-roleta-tag' style='cursor:pointer;margin-left:5px;'>x</span></div>";
+                                        }
+                                    }
+                                }
+                            }
+                            ?>
+                        </div>
+                        <input type="hidden" name="roleta_premios" id="roleta_premios" value="<?php echo isset($roleta_premios) ? htmlspecialchars($roleta_premios) : ''; ?>">
+
+                        <!-- Tabela visual de Cotas da Roleta -->
+                        <div class="w-full overflow-hidden rounded-lg shadow-xs mt-4 border border-gray-200 dark:border-gray-700">
+                            <div class="w-full overflow-x-auto">
+                                <table class="w-full whitespace-no-wrap" id="roleta-table">
+                                    <thead>
+                                        <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
+                                            <th class="px-4 py-3">Cota da Roleta</th>
+                                            <th class="px-4 py-3">Prêmio</th>
+                                            <th class="px-4 py-3 text-right">Ação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800 text-gray-700 dark:text-gray-400" id="roleta-table-body">
+                                        <?php
+                                        if (is_array($roleta_premios_arr)) {
+                                            foreach ($roleta_premios_arr as $item) {
+                                                $cota = trim($item['cota']);
+                                                $premio = trim($item['premio']);
+                                                $tipo = isset($item['tipo']) ? trim($item['tipo']) : 'premios';
+                                                if ($cota !== '') {
+                                                    $icone = ($tipo === 'dinheiro') ? '💵' : '🎁';
+                                                    echo "<tr id='roleta_row_$cota' class='text-gray-700 dark:text-gray-400' data-tipo='$tipo'>";
+                                                    echo "  <td class='px-4 py-3 text-sm font-semibold'>$cota</td>";
+                                                    echo "  <td class='px-4 py-3 text-sm'>$icone $premio</td>";
+                                                    echo "  <td class='px-4 py-3 text-sm text-right'>";
+                                                    echo "      <button type='button' class='btn-remove-roleta-row px-2 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-red-600 border border-transparent rounded-lg active:bg-red-600 hover:bg-red-700 focus:outline-none focus:shadow-outline-red' data-cota='$cota'>Remover</button>";
+                                                    echo "  </td>";
+                                                    echo "</tr>";
+                                                }
+                                            }
+                                        }
+                                        ?>
+                                    </tbody>
+                                </table>
+                                <div id="roleta-table-empty" class="text-center py-6 text-sm text-gray-500 dark:text-gray-400 <?php echo (!empty($roleta_premios_arr)) ? 'hidden' : ''; ?>">
+                                    Nenhuma cota da roleta cadastrada.
+                                </div>
+                            </div>
+                        </div>
+                    </label>
                 </div>
 
                 <!-- Modal: aviso de sequências não salvas -->
@@ -1595,36 +1688,101 @@ echo '<style>' .
         $('#tags-input').on('keypress', function(e) {
             if (e.which === 13) { // Enter key pressed
                 e.preventDefault();
-                var tagText = $(this).val().trim();
+                var tagInput = $(this);
+                var tagText = tagInput.val().trim();
                 var tipoText = 'premiada';
-                var premioText = prompt('Digite o prêmio para a cota "' + tagText + '":');
-                if (premioText === null || premioText === '') {
-                    return
-                }
-                var isDuplicate = false;
+                
+                if (tagText === '') return;
 
+                // Validar se contém apenas números
+                if (!/^\d+$/.test(tagText)) {
+                    alert('A cota deve conter apenas números.');
+                    return;
+                }
+
+                // Obter quantidade de números e validar limite
+                var qtyNumbers = parseInt($('#qty_numbers').val()) || 0;
+                var cotaVal = parseInt(tagText, 10);
+                if (qtyNumbers > 0 && cotaVal >= qtyNumbers) {
+                    alert('Número da cota não pode ser maior ou igual a ' + qtyNumbers + ' (limite máximo é ' + (qtyNumbers - 1) + ').');
+                    return;
+                }
+
+                // Padding de zeros automático
+                // Ex: 1.000.000 números → padLength = String(1000000).length = 7 → 12 vira 0000012
+                if (qtyNumbers > 0) {
+                    var padLength = String(qtyNumbers).length;
+                    tagText = tagText.padStart(padLength, '0');
+                }
+
+                var isDuplicate = false;
                 // Check for duplicate tags
                 $('#tags-container .tag').each(function() {
-                    if ($(this).text().slice(0, -1) === tagText) {
+                    if ($(this).text().slice(0, -1).trim() === tagText) {
                         isDuplicate = true;
                         return false; // Exit loop if duplicate is found
                     }
                 });
 
-                if (tagText !== '' && !isDuplicate) {
-                    $('#tags-container').append('<span id="' + tagText.trim() + '" class="tag ' + tipoText.trim() + '" data-tipo="' + tipoText.trim() + '" data-premio="' +
-                        premioText + '">' + tagText.trim() + '<span class="remove-tag">x</span></span>');
-                    $('#premios-container').append('<span id="p' + tagText.trim() + '" class="tag ' + tipoText.trim() + '">' +
-                        tagText.trim() + ':' + premioText.trim() + '<span class="remove-premio">x</span></span>');
-
-                    $('#tipo-container').append('<span id="t' + tagText + '" class="tag">' + tagText + '<span class="remove-tipo">x</span></span>');
-                    $(this).val('');
-                    updateHiddenInput();
-                } else if (isDuplicate) {
+                if (isDuplicate) {
                     alert('Tag duplicada não pode ser adicionada.');
+                    return;
+                }
+
+                // Verificar duplicidade com cotas de roleta
+                var isRoletaDuplicate = false;
+                $('#roleta-tags-container .roleta-tag').each(function() {
+                    if ($(this).attr('data-cota').trim() === tagText) {
+                        isRoletaDuplicate = true;
+                        return false;
+                    }
+                });
+
+                if (isRoletaDuplicate) {
+                    alert('Esta cota já está cadastrada na lista de Cotas da Roleta.');
+                    return;
+                }
+
+                var premioText = prompt('Digite o prêmio para a cota "' + tagText + '":');
+                if (premioText === null || premioText === '') {
+                    return;
+                }
+
+                var productId = $('[name="id"]').val() || '';
+                if (productId !== '') {
+                    $.ajax({
+                        url: _base_url_ + 'class/Main.php?action=check_cota_sold',
+                        method: 'POST',
+                        data: { product_id: productId, cota: tagText },
+                        dataType: 'json',
+                        success: function(resp) {
+                            if (resp.status === 'success' && resp.sold) {
+                                alert('Erro: A cota ' + tagText + ' já foi vendida ou reservada neste sorteio.');
+                                tagInput.focus();
+                            } else {
+                                insertCommonCotaRow(tagText, premioText, tipoText);
+                            }
+                        },
+                        error: function() {
+                            insertCommonCotaRow(tagText, premioText, tipoText);
+                        }
+                    });
+                } else {
+                    insertCommonCotaRow(tagText, premioText, tipoText);
                 }
             }
         });
+
+        function insertCommonCotaRow(tagText, premioText, tipoText) {
+            $('#tags-container').append('<span id="' + tagText.trim() + '" class="tag ' + tipoText.trim() + '" data-tipo="' + tipoText.trim() + '" data-premio="' +
+                premioText + '">' + tagText.trim() + '<span class="remove-tag">x</span></span>');
+            $('#premios-container').append('<span id="p' + tagText.trim() + '" class="tag ' + tipoText.trim() + '">' +
+                tagText.trim() + ':' + premioText.trim() + '<span class="remove-premio">x</span></span>');
+
+            $('#tipo-container').append('<span id="t' + tagText + '" class="tag">' + tagText + '<span class="remove-tipo">x</span></span>');
+            $('#tags-input').val('');
+            updateHiddenInput();
+        }
 
         $(document).on('click', '.remove-tag, .remove-premio', function() {
             var tagText = $(this).parent().text().slice(0, -1).trim();
@@ -1677,5 +1835,202 @@ echo '<style>' .
             // Remove corresponding values from hidden inputs	
 
         })
+
+        // Lógica de Tags e Prêmios da Roleta Separada
+        function updateRoletaHiddenInput() {
+            var roletaPremios = [];
+            $('#roleta-tags-container .roleta-tag').each(function() {
+                var cota = $(this).attr('data-cota').trim();
+                var premio = $(this).attr('data-premio').trim();
+                var tipo = $(this).attr('data-tipo') ? $(this).attr('data-tipo').trim() : 'premios';
+                roletaPremios.push({
+                    cota: cota,
+                    premio: premio,
+                    tipo: tipo
+                });
+            });
+            $('#roleta_premios').val(JSON.stringify(roletaPremios));
+            console.log("Roleta Premios JSON:", $('#roleta_premios').val());
+        }
+
+        function addRoletaCota() {
+            var cotaInput = $('#roleta-cota-input');
+            var cotaText = cotaInput.val().trim();
+            var premioText = $('#roleta-premio-input').val().trim();
+            var tipoText = $('#roleta-tipo-premio-select').val();
+            
+            if (cotaText === '') {
+                alert('Por favor, informe o número da cota.');
+                cotaInput.focus();
+                return;
+            }
+            if (premioText === '') {
+                alert('Por favor, informe o prêmio da roleta.');
+                $('#roleta-premio-input').focus();
+                return;
+            }
+
+            // Validar se contém apenas números
+            if (!/^\d+$/.test(cotaText)) {
+                alert('A cota deve conter apenas números.');
+                return;
+            }
+
+            // Obter quantidade de números e validar limite
+            var qtyNumbers = parseInt($('#qty_numbers').val()) || 0;
+            var cotaVal = parseInt(cotaText, 10);
+            if (qtyNumbers > 0 && cotaVal >= qtyNumbers) {
+                alert('Número da cota não pode ser maior ou igual a ' + qtyNumbers + ' (limite máximo é ' + (qtyNumbers - 1) + ').');
+                return;
+            }
+
+            // Padding de zeros automático
+            // Ex: 1.000.000 números → padLength = String(1000000).length = 7 → 12 vira 0000012
+            if (qtyNumbers > 0) {
+                var padLength = String(qtyNumbers).length;
+                cotaText = cotaText.padStart(padLength, '0');
+            }
+
+            var isCommonDuplicate = false;
+            $('#tags-container .tag').each(function() {
+                var tagText = $(this).text().slice(0, -1).trim();
+                if (tagText === cotaText) {
+                    isCommonDuplicate = true;
+                    return false;
+                }
+            });
+
+            if (isCommonDuplicate) {
+                alert('Esta cota já está cadastrada na lista de Cotas Premiadas normais.');
+                cotaInput.focus();
+                return;
+            }
+
+            var isDuplicate = false;
+            $('#roleta-tags-container .roleta-tag').each(function() {
+                if ($(this).attr('data-cota').trim() === cotaText) {
+                    isDuplicate = true;
+                    return false;
+                }
+            });
+
+            if (isDuplicate) {
+                alert('Esta cota já foi adicionada na roleta.');
+                return;
+            }
+
+            var productId = $('[name="id"]').val() || '';
+            if (productId !== '') {
+                $.ajax({
+                    url: _base_url_ + 'class/Main.php?action=check_cota_sold',
+                    method: 'POST',
+                    data: { product_id: productId, cota: cotaText },
+                    dataType: 'json',
+                    success: function(resp) {
+                        if (resp.status === 'success' && resp.sold) {
+                            alert('Erro: A cota ' + cotaText + ' já foi vendida ou reservada neste sorteio.');
+                            cotaInput.focus();
+                        } else {
+                            insertRoletaCotaRow(cotaText, premioText, tipoText);
+                        }
+                    },
+                    error: function() {
+                        insertRoletaCotaRow(cotaText, premioText, tipoText);
+                    }
+                });
+            } else {
+                insertRoletaCotaRow(cotaText, premioText, tipoText);
+            }
+        }
+
+        function insertRoletaCotaRow(cotaText, premioText, tipoText) {
+            // Adicionar na lista oculta de tags (compatibilidade)
+            $('#roleta-tags-container').append(
+                '<div id="roleta_tag_' + cotaText + '" class="tag roleta-tag" style="background-color:#4f46e5 !important;" data-cota="' + cotaText + '" data-premio="' + premioText + '" data-tipo="' + tipoText + '">' +
+                cotaText + ' (' + premioText + ') <span class="remove-roleta-tag" style="cursor:pointer;margin-left:5px;">x</span></div>'
+            );
+
+            // Adicionar na tabela visual com o respectivo ícone
+            var icone = (tipoText === 'dinheiro') ? '💵' : '🎁';
+            $('#roleta-table-body').append(
+                '<tr id="roleta_row_' + cotaText + '" class="text-gray-700 dark:text-gray-400" data-tipo="' + tipoText + '">' +
+                '  <td class="px-4 py-3 text-sm font-semibold">' + cotaText + '</td>' +
+                '  <td class="px-4 py-3 text-sm">' + icone + ' ' + premioText + '</td>' +
+                '  <td class="px-4 py-3 text-sm text-right">' +
+                '      <button type="button" class="btn-remove-roleta-row px-2 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-red-600 border border-transparent rounded-lg active:bg-red-600 hover:bg-red-700 focus:outline-none focus:shadow-outline-red" data-cota="' + cotaText + '">Remover</button>' +
+                '  </td>' +
+                '</tr>'
+            );
+            $('#roleta-table-empty').addClass('hidden');
+
+            // Limpar campos e focar no primeiro input
+            $('#roleta-cota-input').val('');
+            $('#roleta-premio-input').val('');
+            $('#roleta-cota-input').focus();
+
+            updateRoletaHiddenInput();
+        }
+
+        $('#btn-add-roleta-cota').on('click', function() {
+            addRoletaCota();
+        });
+
+        $('#roleta-cota-input, #roleta-premio-input').on('keypress', function(e) {
+            if (e.which === 13) { // Enter key pressed
+                e.preventDefault();
+                addRoletaCota();
+            }
+        });
+
+        // Evento de remoção pela tabela ou pela tag
+        $(document).on('click', '.btn-remove-roleta-row', function() {
+            var cota = $(this).attr('data-cota');
+            $('#roleta_tag_' + cota).remove(); // Remove da lista oculta de tags
+            $('#roleta_row_' + cota).remove(); // Remove da tabela
+            
+            if ($('#roleta-table-body tr').length === 0) {
+                $('#roleta-table-empty').removeClass('hidden');
+            }
+            updateRoletaHiddenInput();
+        });
+
+        $(document).on('click', '.remove-roleta-tag', function() {
+            var cota = $(this).parent().attr('data-cota');
+            $('#roleta_tag_' + cota).remove();
+            $('#roleta_row_' + cota).remove();
+            
+            if ($('#roleta-table-body tr').length === 0) {
+                $('#roleta-table-empty').removeClass('hidden');
+            }
+            updateRoletaHiddenInput();
+        });
+
+        // Máscara e comportamento do tipo de prêmio da roleta
+        function formatMoney(value) {
+            value = value.replace(/\D/g, "");
+            if (value === "") return "";
+            value = (value / 100).toFixed(2) + "";
+            value = value.replace(".", ",");
+            value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+            return "R$ " + value;
+        }
+
+        $('#roleta-premio-input').on('input', function() {
+            if ($('#roleta-tipo-premio-select').val() === 'dinheiro') {
+                var value = $(this).val();
+                var cleanValue = value.replace(/\D/g, "");
+                $(this).val(formatMoney(cleanValue));
+            }
+        });
+
+        $('#roleta-tipo-premio-select').on('change', function() {
+            var input = $('#roleta-premio-input');
+            input.val('');
+            if ($(this).val() === 'dinheiro') {
+                input.attr('placeholder', 'Ex: R$ 50,00');
+            } else {
+                input.attr('placeholder', 'Ex: Caixa de Som');
+            }
+        });
     })
 </script>
