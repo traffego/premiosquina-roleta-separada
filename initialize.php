@@ -22,7 +22,7 @@ if ($date_expirate == date('Y-m-d')) {
     if (!defined('BASE_APP')) define('BASE_APP', str_replace('\\', '/', __DIR__) . '/');
 
     if (!defined('DB_SERVER')) define('DB_SERVER', 'localhost');
-    if (!defined('DB_USERNAME')) define('DB_USERNAME', 'u731203135_rfnovo');
+    if (!defined('DB_USERNAME')) define('DB_USERNAME', 'u731203135_roletaseparade');
     if (!defined('DB_PASSWORD')) define('DB_PASSWORD', 'Traffego444#');
     if (!defined('DB_NAME')) define('DB_NAME', 'u731203135_roletaseparade');
     if (!defined('BASE_URL')) define('BASE_URL', 'https://roletaseparada.premiosquina.com/');
