@@ -2006,7 +2006,11 @@ echo '<style>' .
                 '<input type="text" class="roleta-edit-premio form-input text-sm dark:bg-gray-700 dark:text-gray-300 rounded" value="' + premioAtual + '" style="flex:1;">'+
                 '</div>'
             );
-            row.find('.btn-edit-roleta-row').text('Salvar').removeClass('btn-edit-roleta-row bg-blue-600 hover\:bg-blue-700').addClass('btn-save-roleta-row bg-green-600 hover:bg-green-700');
+            // Usar style inline para evitar problema com Tailwind purgado
+            btn.text('✔ Confirmar')
+               .removeClass('btn-edit-roleta-row')
+               .addClass('btn-save-roleta-row')
+               .css({'background-color':'#16a34a','border-color':'#16a34a'});
         });
 
         $(document).on('click', '.btn-save-roleta-row', function() {
@@ -2049,13 +2053,36 @@ echo '<style>' .
             row.attr('id', 'roleta_row_' + newCota).attr('data-tipo', newTipo);
             row.find('.roleta-cell-cota').html(newCota);
             row.find('.roleta-cell-premio').html(icone + ' ' + newPremio);
-            row.find('.btn-save-roleta-row').text('Editar')
+            row.find('.btn-save-roleta-row')
+               .text('Editar')
                .attr('data-cota', newCota)
-               .removeClass('btn-save-roleta-row bg-green-600 hover\:bg-green-700')
-               .addClass('btn-edit-roleta-row bg-blue-600 hover:bg-blue-700');
+               .removeClass('btn-save-roleta-row')
+               .addClass('btn-edit-roleta-row')
+               .css({'background-color':'','border-color':''});
             row.find('.btn-remove-roleta-row').attr('data-cota', newCota);
 
             updateRoletaHiddenInput();
+        });
+
+        // Máscara de dinheiro dinâmica durante edição inline
+        $(document).on('input', '.roleta-edit-premio', function() {
+            var row = $(this).closest('tr');
+            var tipo = row.find('.roleta-edit-tipo').val();
+            if (tipo === 'dinheiro') {
+                var cleanValue = $(this).val().replace(/\D/g, '');
+                $(this).val(formatMoney(cleanValue));
+            }
+        });
+
+        // Ao trocar tipo durante edição inline, limpar campo e ajustar placeholder
+        $(document).on('change', '.roleta-edit-tipo', function() {
+            var premioInput = $(this).closest('div').find('.roleta-edit-premio');
+            premioInput.val('');
+            if ($(this).val() === 'dinheiro') {
+                premioInput.attr('placeholder', 'Ex: R$ 50,00');
+            } else {
+                premioInput.attr('placeholder', 'Ex: Caixa de Som');
+            }
         });
 
         // Evento de remoção pela tabela ou pela tag
