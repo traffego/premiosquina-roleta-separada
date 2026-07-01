@@ -1204,6 +1204,7 @@ echo '<style>' .
                         </div>
                     </label>
                 </div>
+                </div><!-- /tab9 -->
 
                 <!-- Modal: aviso de sequências não salvas -->
                 <div id="modal-unsaved-ranges" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
