@@ -259,19 +259,28 @@ function validate_image($file)
 
 	if (!empty($file)) {
 		$ex = explode('?', $file);
-		$file = $ex[0];
+		$clean = $ex[0];
 		$ts = (isset($ex[1]) ? '?' . $ex[1] : '');
 
-		if (is_file(BASE_APP . $file)) {
-			return BASE_URL . $file . $ts;
+		// Se já é URL completa, retorna direto
+		if (strpos($clean, 'http') === 0) {
+			return $file;
 		}
-		else {
-			return BASE_URL . 'assets/img/no_image.jpg';
+
+		// Tenta verificar fisicamente
+		if (is_file(BASE_APP . $clean)) {
+			return BASE_URL . $clean . $ts;
 		}
-	}
-	else {
+
+		// Fallback: retorna URL mesmo sem confirmar arquivo fisicamente
+		if (!empty($clean)) {
+			return BASE_URL . $clean . $ts;
+		}
+
 		return BASE_URL . 'assets/img/no_image.jpg';
 	}
+
+	return BASE_URL . 'assets/img/no_image.jpg';
 }
 
 function format_num($number = '', $decimal = '', $decimalSeparator = ',', $thousandsSeparator = '.')
