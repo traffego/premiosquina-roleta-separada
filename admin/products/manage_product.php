@@ -1184,9 +1184,10 @@ echo '<style>' .
                                                 if ($cota !== '') {
                                                     $icone = ($tipo === 'dinheiro') ? '💵' : '🎁';
                                                     echo "<tr id='roleta_row_$cota' class='text-gray-700 dark:text-gray-400' data-tipo='$tipo'>";
-                                                    echo "  <td class='px-4 py-3 text-sm font-semibold'>$cota</td>";
-                                                    echo "  <td class='px-4 py-3 text-sm'>$icone $premio</td>";
+                                                    echo "  <td class='px-4 py-3 text-sm font-semibold roleta-cell-cota'>$cota</td>";
+                                                    echo "  <td class='px-4 py-3 text-sm roleta-cell-premio'>$icone $premio</td>";
                                                     echo "  <td class='px-4 py-3 text-sm text-right'>";
+                                                    echo "      <button type='button' class='btn-edit-roleta-row px-2 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none mr-1' data-cota='$cota'>Editar</button>";
                                                     echo "      <button type='button' class='btn-remove-roleta-row px-2 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-red-600 border border-transparent rounded-lg active:bg-red-600 hover:bg-red-700 focus:outline-none focus:shadow-outline-red' data-cota='$cota'>Remover</button>";
                                                     echo "  </td>";
                                                     echo "</tr>";
@@ -1954,9 +1955,10 @@ echo '<style>' .
             var icone = (tipoText === 'dinheiro') ? '💵' : '🎁';
             $('#roleta-table-body').append(
                 '<tr id="roleta_row_' + cotaText + '" class="text-gray-700 dark:text-gray-400" data-tipo="' + tipoText + '">' +
-                '  <td class="px-4 py-3 text-sm font-semibold">' + cotaText + '</td>' +
-                '  <td class="px-4 py-3 text-sm">' + icone + ' ' + premioText + '</td>' +
+                '  <td class="px-4 py-3 text-sm font-semibold roleta-cell-cota">' + cotaText + '</td>' +
+                '  <td class="px-4 py-3 text-sm roleta-cell-premio">' + icone + ' ' + premioText + '</td>' +
                 '  <td class="px-4 py-3 text-sm text-right">' +
+                '      <button type="button" class="btn-edit-roleta-row px-2 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none mr-1" data-cota="' + cotaText + '">Editar</button>' +
                 '      <button type="button" class="btn-remove-roleta-row px-2 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-red-600 border border-transparent rounded-lg active:bg-red-600 hover:bg-red-700 focus:outline-none focus:shadow-outline-red" data-cota="' + cotaText + '">Remover</button>' +
                 '  </td>' +
                 '</tr>'
@@ -1980,6 +1982,80 @@ echo '<style>' .
                 e.preventDefault();
                 addRoletaCota();
             }
+        });
+
+        // Evento de edição inline da roleta
+        $(document).on('click', '.btn-edit-roleta-row', function() {
+            var btn = $(this);
+            var cota = btn.attr('data-cota');
+            var row = $('#roleta_row_' + cota);
+            var tag = $('#roleta_tag_' + cota);
+            var tipoAtual = row.attr('data-tipo') || 'premios';
+            var premioAtual = tag.attr('data-premio') || '';
+
+            // Montar HTML inline de edição
+            var tipoOptions = '<option value="dinheiro"' + (tipoAtual === 'dinheiro' ? ' selected' : '') + '>💵 Dinheiro</option>' +
+                              '<option value="premios"' + (tipoAtual !== 'dinheiro' ? ' selected' : '') + '>🎁 Prêmio</option>';
+
+            row.find('.roleta-cell-cota').html(
+                '<input type="text" class="roleta-edit-cota form-input text-sm dark:bg-gray-700 dark:text-gray-300 rounded" value="' + cota + '" style="width:90px;">'
+            );
+            row.find('.roleta-cell-premio').html(
+                '<div style="display:flex;gap:6px;align-items:center;">'+
+                '<select class="roleta-edit-tipo form-select text-sm dark:bg-gray-700 dark:text-gray-300 rounded" style="width:130px;">' + tipoOptions + '</select>' +
+                '<input type="text" class="roleta-edit-premio form-input text-sm dark:bg-gray-700 dark:text-gray-300 rounded" value="' + premioAtual + '" style="flex:1;">'+
+                '</div>'
+            );
+            row.find('.btn-edit-roleta-row').text('Salvar').removeClass('btn-edit-roleta-row bg-blue-600 hover\:bg-blue-700').addClass('btn-save-roleta-row bg-green-600 hover:bg-green-700');
+        });
+
+        $(document).on('click', '.btn-save-roleta-row', function() {
+            var btn = $(this);
+            var oldCota = btn.attr('data-cota');
+            var row = $('#roleta_row_' + oldCota);
+            var newCota = row.find('.roleta-edit-cota').val().trim();
+            var newTipo = row.find('.roleta-edit-tipo').val();
+            var newPremio = row.find('.roleta-edit-premio').val().trim();
+
+            if (newCota === '') { alert('Cota não pode ser vazia.'); return; }
+            if (newPremio === '') { alert('Prêmio não pode ser vazio.'); return; }
+            if (!/^\d+$/.test(newCota)) { alert('Cota deve conter apenas números.'); return; }
+
+            var qtyNumbers = parseInt($('#qty_numbers').val()) || 0;
+            if (qtyNumbers > 0) {
+                var padLength = String(qtyNumbers).length;
+                newCota = newCota.padStart(padLength, '0');
+            }
+
+            // Verificar duplicidade (exceto a própria cota editada)
+            var isDup = false;
+            $('#roleta-tags-container .roleta-tag').each(function() {
+                var tc = $(this).attr('data-cota').trim();
+                if (tc === newCota && tc !== oldCota) { isDup = true; return false; }
+            });
+            if (isDup) { alert('Já existe uma cota com este número.'); return; }
+
+            var icone = (newTipo === 'dinheiro') ? '💵' : '🎁';
+
+            // Atualizar tag oculta
+            var tag = $('#roleta_tag_' + oldCota);
+            tag.attr('id', 'roleta_tag_' + newCota)
+               .attr('data-cota', newCota)
+               .attr('data-premio', newPremio)
+               .attr('data-tipo', newTipo)
+               .html(newCota + ' (' + newPremio + ') <span class="remove-roleta-tag" style="cursor:pointer;margin-left:5px;">x</span>');
+
+            // Atualizar linha da tabela
+            row.attr('id', 'roleta_row_' + newCota).attr('data-tipo', newTipo);
+            row.find('.roleta-cell-cota').html(newCota);
+            row.find('.roleta-cell-premio').html(icone + ' ' + newPremio);
+            row.find('.btn-save-roleta-row').text('Editar')
+               .attr('data-cota', newCota)
+               .removeClass('btn-save-roleta-row bg-green-600 hover\:bg-green-700')
+               .addClass('btn-edit-roleta-row bg-blue-600 hover:bg-blue-700');
+            row.find('.btn-remove-roleta-row').attr('data-cota', newCota);
+
+            updateRoletaHiddenInput();
         });
 
         // Evento de remoção pela tabela ou pela tag
